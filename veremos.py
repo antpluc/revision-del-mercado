@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import math
 
 # =====================================================
 # CONFIG
@@ -33,10 +34,11 @@ html, body, [class*="css"] {
     border-radius: 20px;
     padding: 20px;
     margin-bottom: 20px;
+    box-shadow: 0px 0px 20px rgba(0,255,150,0.05);
 }
 
 .title {
-    font-size: 48px;
+    font-size: 52px;
     font-weight: 900;
 }
 
@@ -55,6 +57,11 @@ html, body, [class*="css"] {
     color: #ff5c7a;
     font-weight: bold;
     font-size: 22px;
+}
+
+.small-text {
+    color: #8b949e;
+    font-size: 14px;
 }
 
 </style>
@@ -80,14 +87,14 @@ ITEMS = {
 
     "Hierro": {
         "img": "https://app.warera.io/images/items/iron.png?v=32",
-        "buy": 1.61,
-        "sell": 1.62,
+        "buy": 1.610,
+        "sell": 1.620,
     },
 
     "Plomo": {
         "img": "https://app.warera.io/images/items/lead.png?v=32",
-        "buy": 0.68,
-        "sell": 0.71,
+        "buy": 0.680,
+        "sell": 0.710,
     },
 
     "Coca": {
@@ -98,8 +105,8 @@ ITEMS = {
 
     "Vacas": {
         "img": "https://app.warera.io/images/items/livestock.png?v=32",
-        "buy": 1.48,
-        "sell": 1.54,
+        "buy": 1.480,
+        "sell": 1.540,
     },
 
     "Peces": {
@@ -119,8 +126,8 @@ ITEMS = {
 
     "Vigas": {
         "img": "https://app.warera.io/images/items/steel.png?v=32",
-        "buy": 1.65,
-        "sell": 1.67,
+        "buy": 1.650,
+        "sell": 1.670,
         "recipe": {
             "Hierro": 10
         }
@@ -137,8 +144,8 @@ ITEMS = {
 
     "BalasX": {
         "img": "https://app.warera.io/images/items/ammo.png?v=32",
-        "buy": 2.44,
-        "sell": 2.52,
+        "buy": 2.440,
+        "sell": 2.520,
         "recipe": {
             "Plomo": 4
         }
@@ -146,8 +153,8 @@ ITEMS = {
 
     "BalasXX": {
         "img": "https://app.warera.io/images/items/heavyAmmo.png?v=32",
-        "buy": 7.38,
-        "sell": 7.45,
+        "buy": 7.380,
+        "sell": 7.450,
         "recipe": {
             "Plomo": 16
         }
@@ -164,8 +171,8 @@ ITEMS = {
 
     "Carne": {
         "img": "https://app.warera.io/images/items/steak.png?v=32",
-        "buy": 3.19,
-        "sell": 3.25,
+        "buy": 3.190,
+        "sell": 3.250,
         "recipe": {
             "Vacas": 1
         }
@@ -182,8 +189,8 @@ ITEMS = {
 
     "Pastillas": {
         "img": "https://app.warera.io/images/items/cocain.png?v=32",
-        "buy": 1.76,
-        "sell": 1.80,
+        "buy": 1.760,
+        "sell": 1.800,
         "recipe": {
             "Coca": 200
         }
@@ -193,7 +200,7 @@ ITEMS = {
 TIPOS = list(ITEMS.keys())
 
 # =====================================================
-# PRODUCCIÓN
+# PRODUCCION
 # =====================================================
 
 def calcular_produccion(tipo, nivel, bonus):
@@ -216,18 +223,29 @@ def calcular_produccion(tipo, nivel, bonus):
     }
 
     if tipo in ["Piedra", "Trigo", "Hierro", "Plomo", "Coca"]:
-        return produccion
+        real = produccion
 
-    if tipo == "Vacas":
-        return produccion / 20
+    elif tipo == "Vacas":
+        real = produccion / 20
 
-    if tipo == "Peces":
-        return produccion / 40
+    elif tipo == "Peces":
+        real = produccion / 40
 
-    if tipo in factores:
-        return produccion / factores[tipo]
+    elif tipo in factores:
+        real = produccion / factores[tipo]
 
-    return 0
+    else:
+        real = 0
+
+    enteros = math.floor(real)
+
+    decimal = round(real - enteros, 2)
+
+    return {
+        "real": round(real, 2),
+        "enteros": enteros,
+        "decimal": decimal
+    }
 
 # =====================================================
 # HEADER
@@ -259,6 +277,7 @@ for item in ITEMS:
         f"Compra {item}",
         value=float(ITEMS[item]["buy"]),
         step=0.001,
+        format="%.3f",
         key=f"buy_{item}"
     )
 
@@ -266,6 +285,7 @@ for item in ITEMS:
         f"Venta {item}",
         value=float(ITEMS[item]["sell"]),
         step=0.001,
+        format="%.3f",
         key=f"sell_{item}"
     )
 
@@ -295,14 +315,20 @@ bonus_final = st.sidebar.number_input(
 )
 
 # =====================================================
-# PRODUCCIÓN FINAL
+# PRODUCCION FINAL
 # =====================================================
 
-produccion_final = calcular_produccion(
+datos_final = calcular_produccion(
     producto_final,
     nivel_final,
     bonus_final
 )
+
+produccion_final = datos_final["enteros"]
+
+decimal_final = datos_final["decimal"]
+
+produccion_real = datos_final["real"]
 
 # =====================================================
 # MATERIA PRIMA
@@ -329,6 +355,7 @@ if "recipe" in ITEMS[producto_final]:
 # =====================================================
 
 produccion_material = 0
+decimal_material = 0
 costo_material = 0
 
 if usa_empresa_material and material_nombre:
@@ -346,24 +373,26 @@ if usa_empresa_material and material_nombre:
         step=0.01
     )
 
-    produccion_material = calcular_produccion(
+    datos_material = calcular_produccion(
         material_nombre,
         nivel_material,
         bonus_material
     )
 
+    produccion_material = datos_material["enteros"]
+
+    decimal_material = datos_material["decimal"]
+
 else:
 
     if material_nombre:
 
-        # COMPRAS materiales al BUY
         costo_material = ITEMS[material_nombre]["buy"]
 
 # =====================================================
 # PROFIT
 # =====================================================
 
-# VENDES producto al SELL
 precio_venta = ITEMS[producto_final]["sell"]
 
 if material_nombre:
@@ -376,7 +405,6 @@ else:
 
     cantidad_material = 0
 
-# Si produces material tú mismo
 if usa_empresa_material and material_nombre:
 
     costo_total = 0
@@ -417,8 +445,7 @@ if material_nombre and usa_empresa_material:
         requerido
     )
 
-    # Solo si sobra suficiente
-    if sobrante > 0.5:
+    if sobrante > 0:
 
         ganancia_sobrante = (
             sobrante *
@@ -451,8 +478,12 @@ with col2:
     st.markdown('<div class="card">', unsafe_allow_html=True)
 
     st.metric(
-        "Producción Final",
-        round(produccion_final, 2)
+        "Producción usable",
+        produccion_final
+    )
+
+    st.caption(
+        f"Sobrante parcial: {decimal_final}"
     )
 
     st.markdown('</div>', unsafe_allow_html=True)
@@ -465,7 +496,11 @@ with col3:
 
         st.metric(
             f"Producción {material_nombre}",
-            round(produccion_material, 2)
+            produccion_material
+        )
+
+        st.caption(
+            f"Sobrante parcial: {decimal_material}"
         )
 
     else:
@@ -493,7 +528,7 @@ with col4:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =====================================================
-# ANÁLISIS
+# ANALISIS
 # =====================================================
 
 st.subheader("📊 Análisis Industrial")
@@ -532,9 +567,7 @@ if material_nombre:
                 f"❌ Falta producir {round(faltante,2)}"
             )
 
-        # SOBRANTE
-
-        if sobrante > 0.5:
+        if sobrante > 0:
 
             st.success(
                 f"💰 Sobrante vendible: "
@@ -554,7 +587,7 @@ if material_nombre:
         )
 
 # =====================================================
-# MERCADO
+# MERCADO GLOBAL
 # =====================================================
 
 st.subheader("📈 Mercado Global")
@@ -571,9 +604,9 @@ for item, data in ITEMS.items():
     market_data.append({
 
         "Producto": item,
-        "Compra": data["buy"],
-        "Venta": data["sell"],
-        "Spread": spread
+        "Compra": round(data["buy"], 3),
+        "Venta": round(data["sell"], 3),
+        "Spread": round(spread, 3)
     })
 
 market_df = pd.DataFrame(market_data)
@@ -616,7 +649,7 @@ for item, data in ITEMS.items():
     ranking.append({
 
         "Producto": item,
-        "Profit": round(profit, 4)
+        "Profit": round(profit, 3)
     })
 
 ranking_df = pd.DataFrame(ranking)
@@ -630,3 +663,24 @@ st.dataframe(
     ranking_df,
     use_container_width=True
 )
+
+# =====================================================
+# FOOTER
+# =====================================================
+
+st.markdown("""
+<hr style="border:1px solid #30363d; margin-top:40px;">
+
+<div style="
+text-align:center;
+color:#8b949e;
+font-size:14px;
+padding:20px;
+">
+
+Developed by <b>Antonio Pluas</b><br>
+War Era Industrial Command © 2026
+
+</div>
+""", unsafe_allow_html=True)
+
