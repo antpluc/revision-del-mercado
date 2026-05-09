@@ -35,15 +35,8 @@ html, body, [class*="css"] {
     margin-bottom: 20px;
 }
 
-.market-card {
-    background: #1c2128;
-    border-radius: 18px;
-    padding: 15px;
-    border: 1px solid #30363d;
-}
-
 .title {
-    font-size: 52px;
+    font-size: 48px;
     font-weight: 900;
 }
 
@@ -55,11 +48,13 @@ html, body, [class*="css"] {
 .green {
     color: #00ff99;
     font-weight: bold;
+    font-size: 22px;
 }
 
 .red {
     color: #ff5c7a;
     font-weight: bold;
+    font-size: 22px;
 }
 
 </style>
@@ -211,16 +206,12 @@ def calcular_produccion(tipo, nivel, bonus):
 
         "Concreto": 10,
         "Vigas": 10,
-
         "Balas": 1,
         "BalasX": 4,
         "BalasXX": 16,
-
         "Pan": 10,
-
         "Carne": 20,
         "Pescado": 40,
-
         "Pastillas": 200
     }
 
@@ -248,7 +239,7 @@ st.markdown("""
 </div>
 
 <div class="subtitle">
-Sistema Multiempresa Inteligente
+Simulador industrial inteligente
 </div>
 """, unsafe_allow_html=True)
 
@@ -299,8 +290,6 @@ nivel_final = st.sidebar.slider(
 
 bonus_final = st.sidebar.number_input(
     "Bonus Empresa Final (%)",
-    min_value=0.0,
-    max_value=1000.0,
     value=25.0,
     step=0.01
 )
@@ -353,8 +342,6 @@ if usa_empresa_material and material_nombre:
 
     bonus_material = st.sidebar.number_input(
         f"Bonus {material_nombre} (%)",
-        min_value=0.0,
-        max_value=1000.0,
         value=25.0,
         step=0.01
     )
@@ -365,18 +352,18 @@ if usa_empresa_material and material_nombre:
         bonus_material
     )
 
-    costo_material = 0
-
 else:
 
     if material_nombre:
 
-        costo_material = ITEMS[material_nombre]["sell"]
+        # COMPRAS materiales al BUY
+        costo_material = ITEMS[material_nombre]["buy"]
 
 # =====================================================
 # PROFIT
 # =====================================================
 
+# VENDES producto al SELL
 precio_venta = ITEMS[producto_final]["sell"]
 
 if material_nombre:
@@ -389,17 +376,56 @@ else:
 
     cantidad_material = 0
 
+# Si produces material tú mismo
 if usa_empresa_material and material_nombre:
 
     costo_total = 0
 
 else:
 
-    costo_total = costo_material * cantidad_material
+    costo_total = (
+        costo_material *
+        cantidad_material
+    )
 
-profit_unitario = precio_venta - costo_total
+profit_unitario = (
+    precio_venta -
+    costo_total
+)
 
-profit_diario = profit_unitario * produccion_final
+profit_diario = (
+    profit_unitario *
+    produccion_final
+)
+
+# =====================================================
+# SOBRANTE
+# =====================================================
+
+sobrante = 0
+ganancia_sobrante = 0
+
+if material_nombre and usa_empresa_material:
+
+    requerido = (
+        produccion_final *
+        cantidad_material
+    )
+
+    sobrante = (
+        produccion_material -
+        requerido
+    )
+
+    # Solo si sobra suficiente
+    if sobrante > 0.5:
+
+        ganancia_sobrante = (
+            sobrante *
+            ITEMS[material_nombre]["sell"]
+        )
+
+        profit_diario += ganancia_sobrante
 
 # =====================================================
 # CARDS
@@ -474,38 +500,61 @@ st.subheader("📊 Análisis Industrial")
 
 if material_nombre:
 
-    requerido = produccion_final * cantidad_material
+    requerido = (
+        produccion_final *
+        cantidad_material
+    )
 
     st.write(f"🔹 Producto final: {producto_final}")
 
     st.write(f"🔹 Materia prima: {material_nombre}")
 
-    st.write(f"🔹 Necesitas: {round(requerido,2)} de {material_nombre}")
+    st.write(
+        f"🔹 Necesitas: {round(requerido,2)} de {material_nombre}"
+    )
 
     if usa_empresa_material:
 
         if produccion_material >= requerido:
 
             st.success(
-                "✅ Tu empresa de materia prima cubre toda la producción"
+                "✅ Tu empresa cubre toda la producción"
             )
 
         else:
 
-            faltante = requerido - produccion_material
+            faltante = (
+                requerido -
+                produccion_material
+            )
 
             st.error(
                 f"❌ Falta producir {round(faltante,2)}"
             )
 
+        # SOBRANTE
+
+        if sobrante > 0.5:
+
+            st.success(
+                f"💰 Sobrante vendible: "
+                f"{round(sobrante,2)} "
+                f"{material_nombre}"
+            )
+
+            st.success(
+                f"📈 Ganancia extra: "
+                f"{round(ganancia_sobrante,2)}"
+            )
+
     else:
 
         st.warning(
-            "⚠️ Estás comprando la materia prima al mercado"
+            "⚠️ Compras materia prima del mercado"
         )
 
 # =====================================================
-# MERCADO GLOBAL
+# MERCADO
 # =====================================================
 
 st.subheader("📈 Mercado Global")
@@ -535,7 +584,7 @@ st.dataframe(
 )
 
 # =====================================================
-# TOP PROFIT
+# RANKING
 # =====================================================
 
 st.subheader("🔥 Ranking Profit")
@@ -551,10 +600,14 @@ for item, data in ITEMS.items():
         for material, cantidad in data["recipe"].items():
 
             costo += (
-                ITEMS[material]["sell"] * cantidad
+                ITEMS[material]["buy"] *
+                cantidad
             )
 
-        profit = data["sell"] - costo
+        profit = (
+            data["sell"] -
+            costo
+        )
 
     else:
 
