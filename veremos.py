@@ -7,8 +7,8 @@ import math
 # =====================================================
 
 st.set_page_config(
-    page_title="War Era Industrial Command",
-    page_icon="🏭",
+    page_title="War Era, pulgeate varón!!",
+    page_icon="",
     layout="wide"
 )
 
@@ -679,8 +679,9 @@ padding:20px;
 ">
 
 Developed by <b>Antonio Pluas</b><br>
-War Era Industrial Command © 2026
+War Era Ecuadorian company© 2026
 
 </div>
 """, unsafe_allow_html=True)
+
 
