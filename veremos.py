@@ -253,12 +253,10 @@ def calcular_produccion(tipo, nivel, bonus):
 
 st.markdown("""
 <div class="title">
-🏭 WAR ERA INDUSTRIAL COMMAND
-</div>
+War Era, pulgeate varón!!</div>
 
 <div class="subtitle">
-Simulador industrial inteligente
-</div>
+mira que vender y como</div>
 """, unsafe_allow_html=True)
 
 st.write("")
